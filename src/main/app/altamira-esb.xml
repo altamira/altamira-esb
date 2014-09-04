@@ -1,0 +1,425 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:context="http://www.springframework.org/schema/context" xmlns:core="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="CE-3.5.0" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    <db:generic-config name="SQLSERVER_WBCCAD" url="jdbc:sqlserver://sqlserver.ci3m0ww55h4q.sa-east-1.rds.amazonaws.com;database=WBCCAD;user=sqlserver;password=sqladmin;" driverClassName="com.microsoft.sqlserver.jdbc.SQLServerDriver" doc:name="Generic Database Configuration"/>
+    <context:property-placeholder location="api.properties" />
+    <apikit:config name="apiConfig" raml="api.raml" consoleEnabled="true" consolePath="console" doc:name="Router" />
+    <apikit:mapping-exception-strategy name="apiKitGlobalExceptionMapping" doc:name="Mapping Exception Strategy">
+        <apikit:mapping statusCode="404">
+            <apikit:exception value="org.mule.module.apikit.exception.NotFoundException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Resource not found&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+        <apikit:mapping statusCode="405">
+            <apikit:exception value="org.mule.module.apikit.exception.MethodNotAllowedException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Method not allowed&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+        <apikit:mapping statusCode="415">
+            <apikit:exception value="org.mule.module.apikit.exception.UnsupportedMediaTypeException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Unsupported media type&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+        <apikit:mapping statusCode="406">
+            <apikit:exception value="org.mule.module.apikit.exception.NotAcceptableException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Not acceptable&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+        <apikit:mapping statusCode="400">
+            <apikit:exception value="org.mule.module.apikit.exception.BadRequestException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Bad request&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+    </apikit:mapping-exception-strategy>
+    <flow name="main" doc:name="main">
+        <http:inbound-endpoint doc:name="HTTP" exchange-pattern="request-response" address="http://172.31.17.186:${http.port}" />
+        <apikit:router config-ref="apiConfig" doc:name="APIkit Router" />
+        <exception-strategy ref="apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy" />
+    </flow>
+    <flow name="get:/manufacturing/bom/product/{code}:apiConfig" doc:name="get:/product/{code}:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+            	SELECT 
+					--[indice]
+				    UPPER([Produto]) AS code
+				    ,UPPER(ISNULL([Descricao], '')) AS description
+				    ,ISNULL([Unidade], '') AS unit
+				    ,ISNULL([Peso], 0) AS weight
+				    ,UPPER(ISNULL([Familia], '')) AS family
+				    ,UPPER(ISNULL([Cor_padrao], '')) AS color
+				    --,ISNULL([Situacao], '') AS status
+				    ,ISNULL([Altura], 0) AS height
+				    ,ISNULL([Comprimento], 0) AS length
+				    ,ISNULL([Largura], 0) AS width
+				    --,[PrdOrcImagem] 
+				    --,[Preco]
+				    --,[PRDORCVARIAVEIS]
+				    --,[IMPORTARESTRUTURA]
+				    --,[ORIGEM]
+				    --,[TRAVAR_REPRESENTANTE]
+				    --,[PRDORCCHK]
+				    --,[ITEMFATURADO]
+				    --,[ATUALIZADOEM]
+				    --,[IMPORTADOEM]
+				    --,[PRDORC_FORNECEDOR]
+				    --,[PRDORC_GRUPOCORESADC]
+				    --,[PRDORC_GRUPOCOR]
+				    --,[PRDORC_PRC_FORMULA]
+				    --,[PRDORC_PRC_COMPRIMENTO]
+				    --,[PRDORC_PRC_ALTURA]
+				    --,[PRDORC_PRC_LARGURA]
+				    --,[PRDDSCORC]
+				    --,[PRDCRTADC]
+				    --,[PRDORC_PRIORIDADE]
+				    --,[PRDORC_PESO_FIX]
+				    --,[PRDORC_PESO_CMP]
+				    --,[PRDORC_PESO_ALT]
+				    --,[PRDORC_PESO_PRF]
+				    --,[PRDORC_EXP_FLAG_CMP]
+				    --,[PRDORC_EXP_FLAG_ALT]
+				    --,[PRDORC_EXP_FLAG_LRG]
+				    --,[prdorc_semcentavos]
+				    --,[codigoIntegracao]
+				    --,[utilizar_medidas_originais]
+				    --,[PrdOrcAoExportarSubtrairDoComprimento]
+				FROM [WBCCAD].[dbo].[prdorc]
+				WHERE UPPER([Produto]) = UPPER(ISNULL(#[code], ''))
+			]]></db:parameterized-query>
+        </db:select>
+    </flow>
+    <flow name="get:/manufacturing/bom/variable:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+            	SELECT 
+            		UPPER([VARPRDESTCOD]) AS name
+				    ,UPPER(ISNULL([VARPRDESTDSC], '')) AS description
+				    ,ISNULL([VALOR], 0) AS value
+				    --,[VARPRDESTDTC]
+				    --,[VARPRDESTTIP]
+				FROM [WBCCAD].[dbo].[VARPRDEST]
+			]]></db:parameterized-query>
+        </db:select>
+    </flow>
+    <flow name="get:/manufacturing/bom/product/{code}/component:apiConfig" doc:name="get:/product/{code}/component:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" streaming="true" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+	            SELECT 
+					--[PRDORCCODIGOPAI]
+					UPPER([PRDORCCODIGOFILHO]) AS component
+					,[PRDESTSEQUENCIAL] AS sequence
+					--,[PRDESTCONDICAO] 
+					,UPPER(ISNULL([PRDESTFORMULA], '')) AS formula
+					--,[PRDESTDEPARA] 
+					--,[FORMULAPRECO]
+					,ISNULL([COMPRIMENTO], 0) AS length
+					,ISNULL([ALTURA], 0) AS height
+					,ISNULL([PROFUNDIDADE], 0) AS depth
+					--,[FANTASMA]
+					--,[ATUALIZADOEM]
+					--,[IMPORTADOEM]
+					,UPPER(ISNULL([PRDEST_FORMULA_COMPRIMENTO], '')) AS length_formula
+					,UPPER(ISNULL([PRDEST_FORMULA_ALTURA], '')) AS height_formula
+					,UPPER(ISNULL([PRDEST_FORMULA_PROFUNDIDADE], '')) AS depth_formula
+					,CAST(ISNULL([PRDEST_QTDE], 0) AS INT) AS quantity
+					,UPPER(ISNULL([PRDEST_PESO], '')) AS weight_formula
+					,UPPER(ISNULL([PRDEST_PESO_FIXO], '')) AS weight
+					,UPPER(ISNULL([PRDEST_PESO_COMPRIMENTO], '')) AS weight_length_formula
+					,UPPER(ISNULL([PRDEST_PESO_ALTURA], '')) AS weight_height_formula
+					,UPPER(ISNULL([PRDEST_PESO_PROFUNDIDADE], '')) AS weight_depth_formula
+					,UPPER(ISNULL([PRDEST_FORMULA_MULTIPLICAR], '')) AS multiply_formula
+				FROM [WBCCAD].[dbo].[PRDEST] 
+				WHERE UPPER([PRDORCCODIGOPAI]) = UPPER(ISNULL(#[code], ''))
+			]]></db:parameterized-query>
+        </db:select>
+    </flow>
+    <flow name="get:/manufacturing/bom/family/{code}:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+            	SELECT 
+      				UPPER([Familia]) AS code
+				    ,UPPER(ISNULL([Descricao], '')) AS description
+				    --,[IMPORTAR]
+				    --,[VARPRDESTLST]
+				    ,UPPER(ISNULL([FORMULA], '')) AS formula
+				    --,[idPrdfam] AS id
+				    --,[descritivoTecnico]
+				FROM [WBCCAD].[dbo].[prdfam]
+				WHERE UPPER([Familia]) = UPPER(ISNULL(#[code], ''))
+				]]></db:parameterized-query>
+        </db:select> 
+    </flow>
+    <flow name="get:/sales/quotation/status:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+            	SELECT [st_codigo] AS code
+				    ,[st_descricao] AS description
+				    --,[st_flag_ativo]
+				    --,[idOrcst]
+				FROM [WBCCAD].[dbo].[Orcst]
+				WHERE [st_flag_ativo] = 1
+				]]></db:parameterized-query>
+        </db:select>
+    </flow>
+    <flow name="get:/sales/quotation/{number}/item:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+            	SELECT 
+					--[ORCNUM]
+				    [GRPCOD] AS [group]
+				    ,[SUBGRPCOD] AS subgroup
+				    ,[ORCITM] AS item
+				    --,[ORCPRDCOD] AS product
+				    ,[ORCPRDQTD] AS quantity
+				    ,[ORCTXT] AS description
+				    --,[ORCVAL]
+				    --,[ORCIPI]
+				    --,[ORCICM]
+				    --,[idIntegracao_OrcItm]
+				FROM [WBCCAD].[dbo].[INTEGRACAO_ORCITM] 
+				WHERE [ORCNUM] = UPPER(ISNULL(#[number], ''))
+				]]></db:parameterized-query>
+        </db:select>
+    </flow>
+    <flow name="get:/sales/quotation/{number}/{item}:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+            	SELECT 
+					--[ORCNUM]
+				    [GRPCOD] AS [group]
+				    ,[SUBGRPCOD] AS subgroup
+				    ,[ORCITM] AS item
+				    --,[ORCPRDCOD] AS product
+				    ,[ORCPRDQTD] AS quantity
+				    ,[ORCTXT] AS description
+				    --,[ORCVAL]
+				    --,[ORCIPI]
+				    --,[ORCICM]
+				    --,[idIntegracao_OrcItm]
+				FROM [WBCCAD].[dbo].[INTEGRACAO_ORCITM] 
+				WHERE [ORCNUM] = UPPER(ISNULL(#[number], '')) AND [ORCITM] = UPPER(ISNULL(#[item], ''))
+				]]></db:parameterized-query>
+        </db:select>
+    </flow>
+    <flow name="get:/sales/quotation/{number}/{item}/component:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+				SELECT 
+					--[ORCNUM] AS quotation
+				    [GRPCOD] AS [group]
+				    ,[SUBGRPCOD] AS subgroup
+				    ,[ORCITM] AS item
+				    ,[PRDCOD] AS product
+				    ,[CORCOD] AS color
+				    ,[PRDDSC] AS description
+				    ,[ORCQTD] AS quantity
+				    --,[ORCTOT]
+				    ,[ORCPES] AS weight
+				    --,[idIntegracao_OrcPrd]
+				FROM [WBCCAD].[dbo].[INTEGRACAO_ORCPRD]
+				WHERE [ORCNUM] = UPPER(ISNULL(#[number], '')) AND [ORCITM] = UPPER(ISNULL(#[item], ''))
+				]]></db:parameterized-query>
+        </db:select>
+    </flow>
+    <flow name="get:/sales/quotation/{number}:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+				SELECT 
+					[ORCNUM] AS number
+				    ,[SITCOD] AS status
+				    ,[ORCALTDTH] AS created
+				    --,[ORCVALVND]
+				    --,[ORCVALLST]
+				    --,[ORCVALINV]
+				    --,[ORCVALLUC]
+				    --,[ORCVALEXP]
+				    --,[ORCVALCOM]
+				    --,[ORCPERCOM]
+				    --,[REPCOD]
+				    --,[CLICOD] 
+				    ,[CLINOM] AS client
+				    --,[CLICONCOD]
+				    --,[CLICON]
+				    --,[ORCVALTRP]
+				    --,[ORCVALEMB]
+				    --,[ORCVALMON]
+				    --,[PGTCOD]
+				    --,[TIPMONCOD]
+				    --,[PRZENT]
+				    --,[ORCBAS1]
+				    --,[ORCBAS2]
+				    --,[ORCBAS3]
+				    --,[ORCPGT]
+				    --,[idIntegracao_OrcCab]
+				FROM [WBCCAD].[dbo].[INTEGRACAO_ORCCAB] 
+				WHERE [ORCNUM] = UPPER(ISNULL(#[number], ''))
+			]]></db:parameterized-query>
+        </db:select>
+    </flow>
+    <flow name="get:/sales/order/{number}:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+				SELECT 
+					--[LPEMP]
+				    [LPPED] AS number
+				    --,[CCATU]
+				    --,[LPOB1]
+				    --,[LPFEI]
+				    --,[lptra]
+				    --,[LPPAG]
+				    --,[LPCLI]
+				    ,[CCCGC] AS client
+				    --,[LPOBS]
+				    ,[LPENT] AS created
+				    --,[LPVEN]
+				    --,[LPULTSEQ]
+				    --,[LPLo0Emp]
+				    --,[LPLo0Ped]
+				    --,[Lpc2pla]
+				    --,[Lpc2nom]
+				    --,[Lpv0Imp]
+				    --,[LPVGERCOD]
+				    --,[LPVGERDES]
+				    --,[LPVCVUSU]
+				    --,[LPALT]
+				    --,[LPTIPO]
+				    --,[CCEnd1Seq]
+				    --,[CCSEQ]
+				    --,[LpMonCnpj]
+				    --,[LpPrj]
+				    --,[LpOrc]
+				    --,[LpCom]
+				    --,[LpFre]
+				    --,[CTpMCod]
+				    --,[LpObsPgto]
+				    ,[LPWBCCADORCNUM] AS quotation
+				    /*,[CAc0Cod]
+				    ,[Lp0SaiRed]
+				    ,[LPTSARED]
+				    ,[LpMonVal]
+				    ,[LPEtEntDtHCri]
+				    ,[LPEtEntUsuCri]
+				    ,[LPEtEnt]
+				    ,[LpMonBai]
+				    ,[LpMonDtB]
+				    ,[LpMonDtP]
+				    ,[LPEtSitRed]
+				    ,[LPAcaAltRed]
+				    ,[LPDtHAltRed]
+				    ,[LPDatAltRed]
+				    ,[LPUsuAltRed]
+				    ,[LPObsNF]
+				    ,[LpLib]
+				    ,[LPObsOP]
+				    ,[LPEtSitSeqRed]
+				    ,[LpLibUsu]
+				    ,[LpLibDtH]
+				    ,[LpLibDat]
+				    ,[LpBlockCodRed]
+				    ,[LpBlockRed]
+				    ,[LpEtSitUsuRed]
+				    ,[LPEtSitDatRed]
+				    ,[LPObsInt]
+				    ,[LPTOTPedRed]
+				    ,[LPTIPRed]
+				    ,[LPTGERed]
+				    ,[LpDDPFluGer]
+				    ,[LpDDPFluGerDat]
+				    ,[LpDDPFluGerDtH]
+				    ,[LpDDPFluGerUsu]
+				    ,[LpCPg0OkRed]
+				    ,[LpCPg0ProTotRed]
+				    ,[LpCPg0ImpTotRed]
+				    ,[LpCPg0ParTotRed]
+				    ,[LPPagImp]
+				    ,[LpBlockExpedCodRed]
+				    ,[LpBlockExpedRed]
+				    ,[LpDatPrevEnt]*/
+				FROM [GPIMAC_Altamira].[dbo].[LPV]
+				WHERE LPPED = UPPER(ISNULL(#[number], ''))
+			]]></db:parameterized-query>
+        </db:select>
+    </flow>
+       <flow name="get:/sales/order/{number}/item:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+				SELECT 
+					--[LPEMP]
+				    --,[LPPED]
+				    [LPSEQ] AS sequence
+				    ,LTRIM(RTRIM([CPROCOD])) AS product
+				    --,[LP1CLI]
+				    --,[LPDEC]
+				    --,[LPIPI]
+				    --,[LPNCL]
+				    ,[LPQUA] AS quantity
+				    --,[LPPRE]
+				    --,[LPBTO]
+				    ,[LPSAI] AS ship_date
+				    /*,[LPLo1Seq]
+				    ,[LP1PrPTip]
+				    ,[LPGER]
+				    ,[LPGERDES]
+				    ,[LPGUIA]
+				    ,[LPBAIEXP]
+				    ,[LPSalRed]*/
+				    ,[Lp1DesDet] AS descrition
+				    ,LTRIM(RTRIM([CCorCod])) AS color
+				    ,[LPWBCCADORCITM] AS item
+				    ,LTRIM(RTRIM([Lp1OPAprObs])) AS comments
+				    /*,[Lp1OPAprUsuDtH]
+				    ,[Lp1OPAprUsuDat]
+				    ,[Lp1OPAprUsu]
+				    ,[LP1OPApr]
+				    ,[LPGerNumRed]*/
+				    ,[LPWBCCADSGRCOD] AS [group]
+				    ,[LPWBCCADGRPCOD] AS [subgroup]
+				    --,[Lp1DesTec]
+				    --,[Lp1DatCnf]
+				FROM [GPIMAC_Altamira].[dbo].[LPV1]
+				WHERE [LPPED] = UPPER(ISNULL(#[number], ''))
+				]]></db:parameterized-query>
+        </db:select>
+    </flow>
+   <flow name="get:/sales/order/{number}/{item}:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+				SELECT 
+					--[LPEMP]
+				    --,[LPPED]
+				    [LPSEQ] AS sequence
+				    ,LTRIM(RTRIM([CPROCOD])) AS product
+				    --,[LP1CLI]
+				    --,[LPDEC]
+				    --,[LPIPI]
+				    --,[LPNCL]
+				    ,[LPQUA] AS quantity
+				    --,[LPPRE]
+				    --,[LPBTO]
+				    ,[LPSAI] AS ship_date
+				    /*,[LPLo1Seq]
+				    ,[LP1PrPTip]
+				    ,[LPGER]
+				    ,[LPGERDES]
+				    ,[LPGUIA]
+				    ,[LPBAIEXP]
+				    ,[LPSalRed]*/
+				    ,[Lp1DesDet] AS descrition
+				    ,LTRIM(RTRIM([CCorCod])) AS color
+				    ,[LPWBCCADORCITM] AS item
+				    ,LTRIM(RTRIM([Lp1OPAprObs])) AS comments
+				    /*,[Lp1OPAprUsuDtH]
+				    ,[Lp1OPAprUsuDat]
+				    ,[Lp1OPAprUsu]
+				    ,[LP1OPApr]
+				    ,[LPGerNumRed]*/
+				    ,[LPWBCCADSGRCOD] AS [group]
+				    ,[LPWBCCADGRPCOD] AS [subgroup]
+				    --,[Lp1DesTec]
+				    --,[Lp1DatCnf]
+				FROM [GPIMAC_Altamira].[dbo].[LPV1]
+				WHERE [LPPED] = UPPER(ISNULL(#[number], '')) AND [LPWBCCADORCITM] = UPPER(ISNULL(#[item], ''))
+				]]></db:parameterized-query>
+        </db:select>
+    </flow>
+</mule>

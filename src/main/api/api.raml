@@ -1,0 +1,87 @@
+#%RAML 0.8
+---
+title: Altamira ESB API
+baseUri: http://esb.altamira.com.br:8081/wbccad
+mediaType: application/json
+/manufacturing/bom/product:
+  /{code}:
+    get:
+      responses:
+        200:
+          body:
+            application/json
+    /component:
+      get:
+        responses:
+          200:
+            body:
+              application/json
+
+/manufacturing/bom/family:
+  /{code}:
+    get:
+      responses:
+        200:
+          body:
+            application/json
+/manufacturing/bom/variable:
+  get:
+    responses:
+      200:
+        body:
+          application/json
+/sales/quotation:
+  /{number}:
+    get:
+      responses:
+        200:
+          body:
+            application/json
+    /item:
+      get:
+        responses:
+          200:
+            body:
+              application/json
+    /{item}:
+      get:
+        responses:
+          200:
+            body:
+              application/json
+      /component:
+        get:
+          responses:
+            200:
+              body:
+                application/json
+        
+/sales/quotation/status:
+  get:
+    responses:
+      200:
+        body:
+          application/json
+/sales/order:
+  /{number}:
+    get:
+      responses:
+        200:
+          body:
+            application/json
+    /item:
+      get:
+        responses:
+          200:
+            body:
+              application/json
+    /{item}:
+      get:
+        responses:
+          200:
+            body:
+              application/json
+          
+
+        
+      
