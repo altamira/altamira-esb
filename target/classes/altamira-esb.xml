@@ -1,0 +1,506 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	  xmlns="http://www.mulesoft.org/schema/mule/core" 
+	  xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" 
+	  xmlns:context="http://www.springframework.org/schema/context" 
+	  xmlns:core="http://www.mulesoft.org/schema/mule/core" 
+	  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" 
+	  xmlns:http="http://www.mulesoft.org/schema/mule/http" 
+	  xmlns:spring="http://www.springframework.org/schema/beans" 
+	  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	  version="CE-3.5.0" 
+	  xsi:schemaLocation="http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+    <db:generic-config name="SQLSERVER_WBCCAD" url="jdbc:sqlserver://sqlserver.ci3m0ww55h4q.sa-east-1.rds.amazonaws.com;database=WBCCAD;user=sqlserver;password=sqladmin;" driverClassName="com.microsoft.sqlserver.jdbc.SQLServerDriver" doc:name="Generic Database Configuration"/>
+
+    
+    <context:property-placeholder location="api.properties" />
+    <apikit:config name="apiConfig" raml="api.raml" consoleEnabled="true" consolePath="console" doc:name="Router" />
+    <apikit:mapping-exception-strategy name="apiKitGlobalExceptionMapping" doc:name="Mapping Exception Strategy">
+        <apikit:mapping statusCode="404">
+            <apikit:exception value="org.mule.module.apikit.exception.NotFoundException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Resource not found&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+        <apikit:mapping statusCode="405">
+            <apikit:exception value="org.mule.module.apikit.exception.MethodNotAllowedException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Method not allowed&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+        <apikit:mapping statusCode="415">
+            <apikit:exception value="org.mule.module.apikit.exception.UnsupportedMediaTypeException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Unsupported media type&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+        <apikit:mapping statusCode="406">
+            <apikit:exception value="org.mule.module.apikit.exception.NotAcceptableException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Not acceptable&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+        <apikit:mapping statusCode="400">
+            <apikit:exception value="org.mule.module.apikit.exception.BadRequestException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Bad request&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+    </apikit:mapping-exception-strategy>
+    <flow name="main" doc:name="main">
+        <http:inbound-endpoint doc:name="HTTP" exchange-pattern="request-response" address="http://172.31.17.186:${http.port}" />
+        <apikit:router config-ref="apiConfig" doc:name="APIkit Router" />
+        <exception-strategy ref="apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy" />
+    </flow>
+    <flow name="get:/manufacturing/bom/checklist/{number}:apiConfig" doc:name="get:/manufacturing/bom/order/{number}/checklist:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[SELECT 
+					(SELECT     
+						GPIMAC_Altamira.dbo.LPV.LPPED AS number, 
+						LTRIM(RTRIM(ISNULL(GPIMAC_Altamira.dbo.CACLI.CCNOM, ''))) AS customer, 
+						LTRIM(RTRIM(ISNULL(GPIMAC_Altamira.dbo.CAREP.CVNOM, ''))) AS sales_representative, 
+						LTRIM(RTRIM(ISNULL(GPIMAC_Altamira.dbo.LPV.LPENT, ''))) AS order_date,
+						LTRIM(RTRIM(ISNULL(GPIMAC_Altamira.dbo.LPV.LP0SAIRED, ''))) AS delivery_date,
+						GPIMAC_Altamira.dbo.LPV.LPWBCCADORCNUM AS quotation,
+						(SELECT 
+							ISNULL(WBCCAD.dbo.INTEGRACAO_ORCITM.ORCITM, 0) AS item, 
+							LTRIM(RTRIM(LEFT(ISNULL(WBCCAD.dbo.INTEGRACAO_ORCITM.ORCTXT, ''), CHARINDEX(' Valor total líquido:', ISNULL(WBCCAD.dbo.INTEGRACAO_ORCITM.ORCTXT, ''))))) AS description, 
+							--ISNULL(WBCCAD.dbo.INTEGRACAO_ORCITM.ORCPRDQTD, 0) AS quantity, 
+							--LTRIM(RTRIM(ISNULL(WBCCAD.dbo.INTEGRACAO_ORCITM.ORCPRDCOD, ''))) AS code, 
+							--ISNULL(WBCCAD.dbo.INTEGRACAO_ORCITM.GRPCOD, 0) AS [group], 
+							--ISNULL(WBCCAD.dbo.INTEGRACAO_ORCITM.SUBGRPCOD, 0) AS subgroup,
+							(SELECT 
+								  --ISNULL([GRPCOD], 0) AS [group]
+								  --,ISNULL([SUBGRPCOD], 0) AS subgroup
+								  --,ISNULL([ORCITM], 0) AS item
+								  LTRIM(RTRIM(CASE WHEN CHARINDEX('#', ISNULL([PRDCOD], '')) > 0 THEN LEFT(ISNULL([PRDCOD], ''), CHARINDEX('#', [PRDCOD]) -1) ELSE ISNULL([PRDCOD], '') END)) AS code
+								  ,LTRIM(RTRIM(ISNULL([CORCOD], ''))) AS color
+								  ,LTRIM(RTRIM(ISNULL([PRDDSC], ''))) AS description
+								  ,CAST(ISNULL([ORCQTD], 0) AS DECIMAL(10,3)) AS quantity
+								  --,CAST(ISNULL([ORCTOT], 0) AS DECIMAL(10,3)) AS value
+								  ,CAST(ISNULL([ORCPES], 0) AS DECIMAL(10,3)) AS [weight]
+							  FROM 
+								[WBCCAD].[dbo].[INTEGRACAO_ORCPRD]
+							  WHERE 
+								[WBCCAD].[dbo].[INTEGRACAO_ORCPRD].ORCNUM = [WBCCAD].[dbo].[INTEGRACAO_ORCITM].ORCNUM AND
+								[WBCCAD].[dbo].[INTEGRACAO_ORCPRD].ORCITM = [WBCCAD].[dbo].[INTEGRACAO_ORCITM].ORCITM
+							  FOR XML PATH('product'), TYPE)
+						FROM 
+							WBCCAD.dbo.INTEGRACAO_ORCCAB WITH (NOLOCK) INNER JOIN
+							WBCCAD.dbo.INTEGRACAO_ORCITM WITH (NOLOCK) ON
+							WBCCAD.dbo.INTEGRACAO_ORCCAB.ORCNUM = WBCCAD.dbo.INTEGRACAO_ORCITM.ORCNUM
+						WHERE
+							WBCCAD.dbo.INTEGRACAO_ORCCAB.ORCNUM = GPIMAC_Altamira.dbo.LPV.LPWBCCADORCNUM
+						FOR XML PATH('item'), TYPE)
+					FROM         
+						GPIMAC_Altamira.dbo.LPV WITH (NOLOCK) INNER JOIN
+						GPIMAC_Altamira.dbo.CACLI WITH (NOLOCK) ON GPIMAC_Altamira.dbo.CACLI.CCCGC = GPIMAC_Altamira.dbo.LPV.CCCGC INNER JOIN
+						GPIMAC_Altamira.dbo.CAREP WITH (NOLOCK) ON GPIMAC_Altamira.dbo.CAREP.CVCOD = GPIMAC_Altamira.dbo.LPV.LPVEN
+						 /*INNER JOIN
+						WBCCAD.dbo.INTEGRACAO_ORCCAB WITH (NOLOCK) INNER JOIN
+						WBCCAD.dbo.INTEGRACAO_ORCITM WITH (NOLOCK) ON WBCCAD.dbo.INTEGRACAO_ORCCAB.ORCNUM = WBCCAD.dbo.INTEGRACAO_ORCITM.ORCNUM INNER JOIN
+						WBCCAD.dbo.INTEGRACAO_ORCPRD WITH (NOLOCK) ON WBCCAD.dbo.INTEGRACAO_ORCITM.ORCNUM = WBCCAD.dbo.INTEGRACAO_ORCPRD.ORCNUM ON 
+						GPIMAC_Altamira.dbo.LPV.LPWBCCADORCNUM = WBCCAD.dbo.INTEGRACAO_ORCCAB.ORCNUM*/
+					WHERE     
+						(GPIMAC_Altamira.dbo.LPV.LPPED = ISNULL(#[number], 0))
+					FOR XML PATH('order'), TYPE)
+				AS 'orderXml']]></db:parameterized-query>				
+        </db:select>
+        <logger message="#[payload]" level="INFO" doc:name="Logger" />
+ 		<set-payload value="#[groovy:payload.orderXml[0]]" doc:name="Set Payload"/>
+ 		<logger message="#[payload]" level="INFO" doc:name="Logger" />
+        <json:xml-to-json-transformer doc:name="XML to JSON" mimeType="application/json"/>
+ 		
+    </flow>
+
+    <flow name="get:/manufacturing/bom/product/{code}:apiConfig" doc:name="get:/manufacturing/bom/product/{code}:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+            	SELECT 
+					--[indice]
+				    UPPER([Produto]) AS code
+				    ,UPPER(ISNULL([Descricao], '')) AS description
+				    ,ISNULL([Unidade], '') AS unit
+				    ,ISNULL([Peso], 0) AS weight
+				    ,UPPER(ISNULL([Familia], '')) AS family
+				    ,UPPER(ISNULL([Cor_padrao], '')) AS color
+				    --,ISNULL([Situacao], '') AS status
+				    ,ISNULL([Altura], 0) AS height
+				    ,ISNULL([Comprimento], 0) AS length
+				    ,ISNULL([Largura], 0) AS width
+				    --,[PrdOrcImagem] 
+				    --,[Preco]
+				    --,[PRDORCVARIAVEIS]
+				    --,[IMPORTARESTRUTURA]
+				    --,[ORIGEM]
+				    --,[TRAVAR_REPRESENTANTE]
+				    --,[PRDORCCHK]
+				    --,[ITEMFATURADO]
+				    --,[ATUALIZADOEM]
+				    --,[IMPORTADOEM]
+				    --,[PRDORC_FORNECEDOR]
+				    --,[PRDORC_GRUPOCORESADC]
+				    --,[PRDORC_GRUPOCOR]
+				    --,[PRDORC_PRC_FORMULA]
+				    --,[PRDORC_PRC_COMPRIMENTO]
+				    --,[PRDORC_PRC_ALTURA]
+				    --,[PRDORC_PRC_LARGURA]
+				    --,[PRDDSCORC]
+				    --,[PRDCRTADC]
+				    --,[PRDORC_PRIORIDADE]
+				    --,[PRDORC_PESO_FIX]
+				    --,[PRDORC_PESO_CMP]
+				    --,[PRDORC_PESO_ALT]
+				    --,[PRDORC_PESO_PRF]
+				    --,[PRDORC_EXP_FLAG_CMP]
+				    --,[PRDORC_EXP_FLAG_ALT]
+				    --,[PRDORC_EXP_FLAG_LRG]
+				    --,[prdorc_semcentavos]
+				    --,[codigoIntegracao]
+				    --,[utilizar_medidas_originais]
+				    --,[PrdOrcAoExportarSubtrairDoComprimento]
+				FROM [WBCCAD].[dbo].[prdorc]
+				WHERE UPPER([Produto]) = UPPER(ISNULL(#[code], ''))
+			]]></db:parameterized-query>
+        </db:select>
+    </flow>
+    <flow name="get:/manufacturing/bom/order/{number}:apiConfig" doc:name="get:/manufacturing/bom/order/{number}:apiConfig">
+        <set-payload value="{ 'quotation': '00087234', 'created': 1408665600000, 'client': '94.343.621/0001-11', 'number': 72376, 'item': [{ 'subgroup': 2, 'comments': '', 'item': 1, 'product': '#1_1408_0012045', 'group': 1, 'color': 'CZ-PAD', 'descrition': 'Conjunto de estruturas metálicas do tipo porta-paletes medindo 12000 x 1000 x 4000 mm composto por 4 módulos, sendo: - 3 módulos medindo 2700 x 1000 x 4000 mm com 2 pares de longarinas para 2000 kgf e - 1 módulo medindo 3500 x 1000 x 4000 mm com 2 pares de longarinas para 3000 kgf. Cargas uniformemente distribuidas. Pintura: Colunas dos montantes cinza e longarinas laranja. Atenção: Verificar no item 'COR DA PINTURA' os acessórios que serão galvanizados e sem pintura.', 'ship_date': 1412553600000, 'quantity': 1, 'sequence': 1, 'component': [{ 'product': 'PPLCOL00080180000000', 'item': 1, 'subgroup': 1, 'color': 'CZ-PAD', 'group': 2, 'description': 'COLUNA NORMAL 1,80 4000MM', 'quantity': 10, 'weight': 138.9849408, 'length': 4000, 'component': [ { 'code': 'ALPRFQ24-KG18000F240', 'color': 'SEM COR', 'width': 240, 'family': 'CHFQ', 'height': 0, 'unit': 'Kg', 'length': 4000, 'thickness': 1.80, 'description': 'AÇO LAM PLANO FINA QUENTE PRETO ROLO 24KG/MM2 1,80MM ESP FITA 240MM', 'weight': 135.65, } ] }, { 'product': 'PPLDIAGALCP155000000#1464#0#0', 'item': 1, 'subgroup': 1, 'color': 'S/ COR', 'group': 2, 'description': 'DIAGONAL GALV. esp1,55 mm C/ PARAF 1464MM', 'quantity': 15, 'weight': 23.8038555, 'length': 1464, 'component': [] }, { 'product': 'PPLLOF001500CJ140000#3500#0#0', 'item': 1, 'subgroup': 1, 'color': 'LA-LB', 'group': 2, 'description': 'LONGARINA FECHADA 150 CH14 MED3500MM', 'quantity': 4, 'weight': 111.2975429944, 'length': 3500, 'component': [] }, { 'product': 'PPLLOTCJ113000000000#2700#0#0', 'item': 1, 'subgroup': 1, 'color': 'LA-LB', 'group': 2, 'description': 'LONGARINA TUBO 113 2700MM', 'quantity': 12, 'weight': 181.9599170232, 'length': 2700, 'component': [] }, { 'product': 'PPLSAP02CHU000000000', 'item': 1, 'subgroup': 1, 'color': 'GALV-E', 'group': 2, 'description': 'SAPATA PPL NORMAL COM 02 CHUMBADOR', 'quantity': 10, 'weight': 9.22796463, 'length': 0, 'component': [] }, { 'product': 'PPLTRAGALCP155000000#905#0#0', 'item': 1, 'subgroup': 1, 'color': 'S/ COR', 'group': 2, 'description': 'TRAVESSA GALV esp 1,55 mm C/PARAF 905MM', 'quantity': 20, 'weight': 20.17569875, 'length': 905, 'component': [] } ] }, { 'subgroup': 2, 'comments': '', 'item': 10, 'product': '#1_1408_0012046', 'group': 1, 'color': 'CZ-PAD', 'descrition': 'Conjunto de estruturas metálicas do tipo porta-paletes medindo 6040 x 1000 x 4000 mm composto por 2 módulos, sendo: - 1 módulo medindo 2300 x 1000 x 4000 mm com 2 pares de longarinas para 2000 kgf e - 1 módulo medindo 3500 x 1000 x 4000 mm com 2 pares de longarinas para 3000 kgf. Cargas uniformemente distribuidas. Pintura: Colunas dos montantes cinza e longarinas laranja. Atenção: Verificar no item 'COR DA PINTURA' os acessórios que serão galvanizados e sem pintura.', 'ship_date': 1412553600000, 'quantity': 1, 'sequence': 2 }, { 'subgroup': 2, 'comments': '', 'item': 20, 'product': '#1_1408_0012047', 'group': 1, 'color': 'CZ-PAD', 'descrition': 'Módulo de estrutura metálica do tipo porta-paletes medindo 2700 x 1000 x 4000 mm ( medida total frontal = 2860 mm ) com 2 pares de longarinas aptos a suportar uma carga uniformemente distribuida de 2000 kgf cada. Cargas uniformemente distribuidas. Pintura: Colunas dos montantes cinza e longarinas laranja. Atenção: Verificar no item 'COR DA PINTURA' os acessórios que serão galvanizados e sem pintura.', 'ship_date': 1412553600000, 'quantity': 1, 'sequence': 3 }, { 'subgroup': 2, 'comments': '', 'item': 30, 'product': '#1_1408_0012048', 'group': 1, 'color': 'CZ-PAD', 'descrition': 'Módulo de estrutura metálica do tipo porta-paletes medindo 2300 x 1000 x 4000 mm ( medida total frontal = 2460 mm ) com 2 pares de longarinas aptos a suportar uma carga uniformemente distribuida de 2000 kgf cada. Cargas uniformemente distribuidas. Pintura: Colunas dos montantes cinza e longarinas laranja. Atenção: Verificar no item 'COR DA PINTURA' os acessórios que serão galvanizados e sem pintura.', 'ship_date': 1412553600000, 'quantity': 1, 'sequence': 4 } ] }" doc:name="Set Payload"/>
+    </flow>
+    <flow name="get:/manufacturing/bom/variable:apiConfig" doc:name="get:/manufacturing/bom/variable:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+            	SELECT 
+            		UPPER([VARPRDESTCOD]) AS name
+				    ,UPPER(ISNULL([VARPRDESTDSC], '')) AS description
+				    ,ISNULL([VALOR], 0) AS value
+				    --,[VARPRDESTDTC]
+				    --,[VARPRDESTTIP]
+				FROM [WBCCAD].[dbo].[VARPRDEST]
+			]]></db:parameterized-query>
+        </db:select>
+    </flow>
+    <flow name="get:/manufacturing/bom/product/{code}/component:apiConfig" doc:name="get:/manufacturing/bom/product/{code}/component:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" streaming="true" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+	            SELECT 
+					--[PRDORCCODIGOPAI]
+					UPPER([PRDORCCODIGOFILHO]) AS component
+					,[PRDESTSEQUENCIAL] AS sequence
+					--,[PRDESTCONDICAO] 
+					,UPPER(ISNULL([PRDESTFORMULA], '')) AS formula
+					--,[PRDESTDEPARA] 
+					--,[FORMULAPRECO]
+					,ISNULL([COMPRIMENTO], 0) AS length
+					,ISNULL([ALTURA], 0) AS height
+					,ISNULL([PROFUNDIDADE], 0) AS depth
+					--,[FANTASMA]
+					--,[ATUALIZADOEM]
+					--,[IMPORTADOEM]
+					,UPPER(ISNULL([PRDEST_FORMULA_COMPRIMENTO], '')) AS length_formula
+					,UPPER(ISNULL([PRDEST_FORMULA_ALTURA], '')) AS height_formula
+					,UPPER(ISNULL([PRDEST_FORMULA_PROFUNDIDADE], '')) AS depth_formula
+					,CAST(ISNULL([PRDEST_QTDE], 0) AS INT) AS quantity
+					,UPPER(ISNULL([PRDEST_PESO], '')) AS weight_formula
+					,UPPER(ISNULL([PRDEST_PESO_FIXO], '')) AS weight
+					,UPPER(ISNULL([PRDEST_PESO_COMPRIMENTO], '')) AS weight_length_formula
+					,UPPER(ISNULL([PRDEST_PESO_ALTURA], '')) AS weight_height_formula
+					,UPPER(ISNULL([PRDEST_PESO_PROFUNDIDADE], '')) AS weight_depth_formula
+					,UPPER(ISNULL([PRDEST_FORMULA_MULTIPLICAR], '')) AS multiply_formula
+				FROM [WBCCAD].[dbo].[PRDEST] 
+				WHERE UPPER([PRDORCCODIGOPAI]) = UPPER(ISNULL(#[code], ''))
+			]]></db:parameterized-query>
+        </db:select>
+    </flow>
+    <flow name="get:/manufacturing/bom/family/{code}:apiConfig" doc:name="get:/manufacturing/bom/family/{code}:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+            	SELECT 
+      				UPPER([Familia]) AS code
+				    ,UPPER(ISNULL([Descricao], '')) AS description
+				    --,[IMPORTAR]
+				    --,[VARPRDESTLST]
+				    ,UPPER(ISNULL([FORMULA], '')) AS formula
+				    --,[idPrdfam] AS id
+				    --,[descritivoTecnico]
+				FROM [WBCCAD].[dbo].[prdfam]
+				WHERE UPPER([Familia]) = UPPER(ISNULL(#[code], ''))
+				]]></db:parameterized-query>
+        </db:select> 
+    </flow>
+    <flow name="get:/sales/quotation/status:apiConfig" doc:name="get:/sales/quotation/status:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+            	SELECT [st_codigo] AS code
+				    ,[st_descricao] AS description
+				    --,[st_flag_ativo]
+				    --,[idOrcst]
+				FROM [WBCCAD].[dbo].[Orcst]
+				WHERE [st_flag_ativo] = 1
+				]]></db:parameterized-query>
+        </db:select>
+    </flow>
+    <flow name="get:/sales/quotation/{number}/item:apiConfig" doc:name="get:/sales/quotation/{number}/item:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+            	SELECT 
+					--[ORCNUM]
+				    [GRPCOD] AS [group]
+				    ,[SUBGRPCOD] AS subgroup
+				    ,[ORCITM] AS item
+				    --,[ORCPRDCOD] AS product
+				    ,[ORCPRDQTD] AS quantity
+				    ,[ORCTXT] AS description
+				    --,[ORCVAL]
+				    --,[ORCIPI]
+				    --,[ORCICM]
+				    --,[idIntegracao_OrcItm]
+				FROM [WBCCAD].[dbo].[INTEGRACAO_ORCITM] 
+				WHERE [ORCNUM] = UPPER(ISNULL(#[number], ''))
+				]]></db:parameterized-query>
+        </db:select>
+    </flow>
+    <flow name="get:/sales/quotation/{number}/{item}:apiConfig" doc:name="get:/sales/quotation/{number}/{item}:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+            	SELECT 
+					--[ORCNUM]
+				    [GRPCOD] AS [group]
+				    ,[SUBGRPCOD] AS subgroup
+				    ,[ORCITM] AS item
+				    --,[ORCPRDCOD] AS product
+				    ,[ORCPRDQTD] AS quantity
+				    ,[ORCTXT] AS description
+				    --,[ORCVAL]
+				    --,[ORCIPI]
+				    --,[ORCICM]
+				    --,[idIntegracao_OrcItm]
+				FROM [WBCCAD].[dbo].[INTEGRACAO_ORCITM] 
+				WHERE [ORCNUM] = UPPER(ISNULL(#[number], '')) AND [ORCITM] = UPPER(ISNULL(#[item], ''))
+				]]></db:parameterized-query>
+        </db:select>
+    </flow>
+    <flow name="get:/sales/quotation/{number}/{item}/component:apiConfig" doc:name="get:/sales/quotation/{number}/{item}/component:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+				SELECT 
+					--[ORCNUM] AS quotation
+				    [GRPCOD] AS [group]
+				    ,[SUBGRPCOD] AS subgroup
+				    ,[ORCITM] AS item
+				    ,[PRDCOD] AS product
+				    ,[CORCOD] AS color
+				    ,[PRDDSC] AS description
+				    ,[ORCQTD] AS quantity
+				    --,[ORCTOT]
+				    ,[ORCPES] AS weight
+				    --,[idIntegracao_OrcPrd]
+				FROM [WBCCAD].[dbo].[INTEGRACAO_ORCPRD]
+				WHERE [ORCNUM] = UPPER(ISNULL(#[number], '')) AND [ORCITM] = UPPER(ISNULL(#[item], ''))
+				]]></db:parameterized-query>
+        </db:select>
+    </flow>
+    <flow name="get:/sales/quotation/{number}:apiConfig" doc:name="get:/sales/quotation/{number}:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+				SELECT 
+					[ORCNUM] AS number
+				    ,[SITCOD] AS status
+				    ,[ORCALTDTH] AS created
+				    --,[ORCVALVND]
+				    --,[ORCVALLST]
+				    --,[ORCVALINV]
+				    --,[ORCVALLUC]
+				    --,[ORCVALEXP]
+				    --,[ORCVALCOM]
+				    --,[ORCPERCOM]
+				    --,[REPCOD]
+				    --,[CLICOD] 
+				    ,[CLINOM] AS client
+				    --,[CLICONCOD]
+				    --,[CLICON]
+				    --,[ORCVALTRP]
+				    --,[ORCVALEMB]
+				    --,[ORCVALMON]
+				    --,[PGTCOD]
+				    --,[TIPMONCOD]
+				    --,[PRZENT]
+				    --,[ORCBAS1]
+				    --,[ORCBAS2]
+				    --,[ORCBAS3]
+				    --,[ORCPGT]
+				    --,[idIntegracao_OrcCab]
+				FROM [WBCCAD].[dbo].[INTEGRACAO_ORCCAB] 
+				WHERE [ORCNUM] = UPPER(ISNULL(#[number], ''))
+			]]></db:parameterized-query>
+        </db:select>
+    </flow>
+    <flow name="get:/sales/order/{number}:apiConfig" doc:name="get:/sales/order/{number}:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+				SELECT 
+					--[LPEMP]
+				    [LPPED] AS number
+				    --,[CCATU]
+				    --,[LPOB1]
+				    --,[LPFEI]
+				    --,[lptra]
+				    --,[LPPAG]
+				    --,[LPCLI]
+				    ,[CCCGC] AS client
+				    --,[LPOBS]
+				    ,[LPENT] AS created
+				    --,[LPVEN]
+				    --,[LPULTSEQ]
+				    --,[LPLo0Emp]
+				    --,[LPLo0Ped]
+				    --,[Lpc2pla]
+				    --,[Lpc2nom]
+				    --,[Lpv0Imp]
+				    --,[LPVGERCOD]
+				    --,[LPVGERDES]
+				    --,[LPVCVUSU]
+				    --,[LPALT]
+				    --,[LPTIPO]
+				    --,[CCEnd1Seq]
+				    --,[CCSEQ]
+				    --,[LpMonCnpj]
+				    --,[LpPrj]
+				    --,[LpOrc]
+				    --,[LpCom]
+				    --,[LpFre]
+				    --,[CTpMCod]
+				    --,[LpObsPgto]
+				    ,[LPWBCCADORCNUM] AS quotation
+				    /*,[CAc0Cod]
+				    ,[Lp0SaiRed]
+				    ,[LPTSARED]
+				    ,[LpMonVal]
+				    ,[LPEtEntDtHCri]
+				    ,[LPEtEntUsuCri]
+				    ,[LPEtEnt]
+				    ,[LpMonBai]
+				    ,[LpMonDtB]
+				    ,[LpMonDtP]
+				    ,[LPEtSitRed]
+				    ,[LPAcaAltRed]
+				    ,[LPDtHAltRed]
+				    ,[LPDatAltRed]
+				    ,[LPUsuAltRed]
+				    ,[LPObsNF]
+				    ,[LpLib]
+				    ,[LPObsOP]
+				    ,[LPEtSitSeqRed]
+				    ,[LpLibUsu]
+				    ,[LpLibDtH]
+				    ,[LpLibDat]
+				    ,[LpBlockCodRed]
+				    ,[LpBlockRed]
+				    ,[LpEtSitUsuRed]
+				    ,[LPEtSitDatRed]
+				    ,[LPObsInt]
+				    ,[LPTOTPedRed]
+				    ,[LPTIPRed]
+				    ,[LPTGERed]
+				    ,[LpDDPFluGer]
+				    ,[LpDDPFluGerDat]
+				    ,[LpDDPFluGerDtH]
+				    ,[LpDDPFluGerUsu]
+				    ,[LpCPg0OkRed]
+				    ,[LpCPg0ProTotRed]
+				    ,[LpCPg0ImpTotRed]
+				    ,[LpCPg0ParTotRed]
+				    ,[LPPagImp]
+				    ,[LpBlockExpedCodRed]
+				    ,[LpBlockExpedRed]
+				    ,[LpDatPrevEnt]*/
+				FROM [GPIMAC_Altamira].[dbo].[LPV]
+				WHERE LPPED = UPPER(ISNULL(#[number], ''))
+			]]></db:parameterized-query>
+        </db:select>
+    </flow>
+       <flow name="get:/sales/order/{number}/item:apiConfig" doc:name="get:/sales/order/{number}/item:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+				SELECT 
+					--[LPEMP]
+				    --,[LPPED]
+				    [LPSEQ] AS sequence
+				    ,LTRIM(RTRIM([CPROCOD])) AS product
+				    --,[LP1CLI]
+				    --,[LPDEC]
+				    --,[LPIPI]
+				    --,[LPNCL]
+				    ,[LPQUA] AS quantity
+				    --,[LPPRE]
+				    --,[LPBTO]
+				    ,[LPSAI] AS ship_date
+				    /*,[LPLo1Seq]
+				    ,[LP1PrPTip]
+				    ,[LPGER]
+				    ,[LPGERDES]
+				    ,[LPGUIA]
+				    ,[LPBAIEXP]
+				    ,[LPSalRed]*/
+				    ,[Lp1DesDet] AS descrition
+				    ,LTRIM(RTRIM([CCorCod])) AS color
+				    ,[LPWBCCADORCITM] AS item
+				    ,LTRIM(RTRIM([Lp1OPAprObs])) AS comments
+				    /*,[Lp1OPAprUsuDtH]
+				    ,[Lp1OPAprUsuDat]
+				    ,[Lp1OPAprUsu]
+				    ,[LP1OPApr]
+				    ,[LPGerNumRed]*/
+				    ,[LPWBCCADSGRCOD] AS [group]
+				    ,[LPWBCCADGRPCOD] AS [subgroup]
+				    --,[Lp1DesTec]
+				    --,[Lp1DatCnf]
+				FROM [GPIMAC_Altamira].[dbo].[LPV1]
+				WHERE [LPPED] = UPPER(ISNULL(#[number], ''))
+				]]></db:parameterized-query>
+        </db:select>
+    </flow>
+   <flow name="get:/sales/order/{number}/{item}:apiConfig" doc:name="get:/sales/order/{number}/{item}:apiConfig">
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[
+				SELECT 
+					--[LPEMP]
+				    --,[LPPED]
+				    [LPSEQ] AS sequence
+				    ,LTRIM(RTRIM([CPROCOD])) AS product
+				    --,[LP1CLI]
+				    --,[LPDEC]
+				    --,[LPIPI]
+				    --,[LPNCL]
+				    ,[LPQUA] AS quantity
+				    --,[LPPRE]
+				    --,[LPBTO]
+				    ,[LPSAI] AS ship_date
+				    /*,[LPLo1Seq]
+				    ,[LP1PrPTip]
+				    ,[LPGER]
+				    ,[LPGERDES]
+				    ,[LPGUIA]
+				    ,[LPBAIEXP]
+				    ,[LPSalRed]*/
+				    ,[Lp1DesDet] AS descrition
+				    ,LTRIM(RTRIM([CCorCod])) AS color
+				    ,[LPWBCCADORCITM] AS item
+				    ,LTRIM(RTRIM([Lp1OPAprObs])) AS comments
+				    /*,[Lp1OPAprUsuDtH]
+				    ,[Lp1OPAprUsuDat]
+				    ,[Lp1OPAprUsu]
+				    ,[LP1OPApr]
+				    ,[LPGerNumRed]*/
+				    ,[LPWBCCADSGRCOD] AS [group]
+				    ,[LPWBCCADGRPCOD] AS [subgroup]
+				    --,[Lp1DesTec]
+				    --,[Lp1DatCnf]
+				FROM [GPIMAC_Altamira].[dbo].[LPV1]
+				WHERE [LPPED] = UPPER(ISNULL(#[number], '')) AND [LPWBCCADORCITM] = UPPER(ISNULL(#[item], ''))
+				]]></db:parameterized-query>
+        </db:select>
+    </flow>
+</mule>

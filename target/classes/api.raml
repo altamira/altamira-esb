@@ -1,0 +1,255 @@
+#%RAML 0.8
+---
+title: Altamira ESB API
+baseUri: http://esb.altamira.com.br:8081
+mediaType: application/json
+/manufacturing:
+  /bom:
+    /product:
+      /{code}:
+        get:
+          responses:
+            200:
+              body:
+                application/json
+        /component:
+          get:
+            responses:
+              200:
+                body:
+                  application/json
+    /family:
+      /{code}:
+        get:
+          responses:
+            200:
+              body:
+                application/json
+    /variable:
+      get:
+        responses:
+          200:
+            body:
+              application/json
+    /order:
+      /{number}:
+        displayName: Bill of Material from Order
+        get:
+          description: get a tree of Bill of Material from Order number
+          responses:
+            200:  
+              body: 
+                application/json:
+                  example: | 
+                    {
+                      "quotation": "00087234",
+                      "created": 1408665600000,
+                      "client": "94.343.621/0001-11",
+                      "number": 72376,
+                      "item": 
+                        [{
+                            "subgroup": 2,
+                            "comments": "",
+                            "item": 1,
+                            "product": "#1_1408_0012045",
+                            "group": 1,
+                            "color": "CZ-PAD",
+                            "descrition": "Conjunto de estruturas metálicas do tipo porta-paletes medindo 12000 x 1000 x 4000 mm composto por 4 módulos, sendo: - 3 módulos medindo 2700 x 1000 x 4000 mm com 2 pares de longarinas para 2000 kgf e - 1 módulo medindo 3500 x 1000 x 4000 mm com 2 pares de longarinas para 3000 kgf. Cargas uniformemente distribuidas. Pintura: Colunas dos montantes cinza e longarinas laranja.  Atenção: Verificar no item 'COR DA PINTURA' os acessórios que serão galvanizados e sem pintura.",
+                            "ship_date": 1412553600000,
+                            "quantity": 1,
+                            "sequence": 1,
+                            "component": 
+                              [{
+                                  "product": "PPLCOL00080180000000",
+                                  "item": 1,
+                                  "subgroup": 1,
+                                  "color": "CZ-PAD",
+                                  "group": 2,
+                                  "description": "COLUNA NORMAL 1,80 4000MM",
+                                  "quantity": 10,
+                                  "weight": 138.9849408,
+                                  "length": 4000,
+                                  "component": 
+                                  [
+                                      {
+                                          "code": "ALPRFQ24-KG18000F240",
+                                          "color": "SEM COR",
+                                          "width": 240,
+                                          "family": "CHFQ",
+                                          "height": 0,
+                                          "unit": "Kg",
+                                          "length": 4000,
+                                          "thickness": 1.80,
+                                          "description": "AÇO LAM PLANO FINA QUENTE PRETO ROLO 24KG/MM2 1,80MM ESP FITA 240MM",
+                                          "weight": 135.65,
+                                      }
+                                  ]
+                              },
+                              {
+                                  "product": "PPLDIAGALCP155000000#1464#0#0",
+                                  "item": 1,
+                                  "subgroup": 1,
+                                  "color": "S/ COR",
+                                  "group": 2,
+                                  "description": "DIAGONAL GALV. esp1,55 mm C/ PARAF 1464MM",
+                                  "quantity": 15,
+                                  "weight": 23.8038555,
+                                  "length": 1464,
+                                  "component": 
+                                  []
+                              },
+                              {
+                                  "product": "PPLLOF001500CJ140000#3500#0#0",
+                                  "item": 1,
+                                  "subgroup": 1,
+                                  "color": "LA-LB",
+                                  "group": 2,
+                                  "description": "LONGARINA FECHADA 150 CH14 MED3500MM",
+                                  "quantity": 4,
+                                  "weight": 111.2975429944,
+                                  "length": 3500,
+                                  "component": 
+                                  []
+                              },
+                              {
+                                  "product": "PPLLOTCJ113000000000#2700#0#0",
+                                  "item": 1,
+                                  "subgroup": 1,
+                                  "color": "LA-LB",
+                                  "group": 2,
+                                  "description": "LONGARINA TUBO 113 2700MM",
+                                  "quantity": 12,
+                                  "weight": 181.9599170232,
+                                  "length": 2700,
+                                  "component": 
+                                  []
+                              },
+                              {
+                                  "product": "PPLSAP02CHU000000000",
+                                  "item": 1,
+                                  "subgroup": 1,
+                                  "color": "GALV-E",
+                                  "group": 2,
+                                  "description": "SAPATA PPL NORMAL COM 02 CHUMBADOR",
+                                  "quantity": 10,
+                                  "weight": 9.22796463,
+                                  "length": 0,
+                                  "component": 
+                                  []
+                              },
+                              {
+                                  "product": "PPLTRAGALCP155000000#905#0#0",
+                                  "item": 1,
+                                  "subgroup": 1,
+                                  "color": "S/ COR",
+                                  "group": 2,
+                                  "description": "TRAVESSA GALV esp 1,55 mm C/PARAF 905MM",
+                                  "quantity": 20,
+                                  "weight": 20.17569875,
+                                  "length": 905,
+                                  "component": 
+                                  []
+                              }
+                          ]
+                        },
+                        {
+                            "subgroup": 2,
+                            "comments": "",
+                            "item": 10,
+                            "product": "#1_1408_0012046",
+                            "group": 1,
+                            "color": "CZ-PAD",
+                            "descrition": "Conjunto de estruturas metálicas do tipo porta-paletes medindo 6040 x 1000 x 4000 mm composto por 2 módulos, sendo: - 1 módulo medindo 2300 x 1000 x 4000 mm com 2 pares de longarinas para 2000 kgf e - 1 módulo medindo 3500 x 1000 x 4000 mm com 2 pares de longarinas para 3000 kgf. Cargas uniformemente distribuidas. Pintura: Colunas dos montantes cinza e longarinas laranja.  Atenção: Verificar no item 'COR DA PINTURA' os acessórios que serão galvanizados e sem pintura.",
+                            "ship_date": 1412553600000,
+                            "quantity": 1,
+                            "sequence": 2
+                        },
+                        {
+                            "subgroup": 2,
+                            "comments": "",
+                            "item": 20,
+                            "product": "#1_1408_0012047",
+                            "group": 1,
+                            "color": "CZ-PAD",
+                            "descrition": "Módulo de estrutura metálica do tipo porta-paletes medindo 2700 x 1000 x 4000 mm ( medida total frontal = 2860 mm ) com 2 pares de longarinas aptos a suportar uma carga uniformemente distribuida de 2000 kgf cada.  Cargas uniformemente distribuidas. Pintura: Colunas dos montantes cinza e longarinas laranja.  Atenção: Verificar no item 'COR DA PINTURA' os acessórios que serão galvanizados e sem pintura.",
+                            "ship_date": 1412553600000,
+                            "quantity": 1,
+                            "sequence": 3
+                        },
+                        {
+                            "subgroup": 2,
+                            "comments": "",
+                            "item": 30,
+                            "product": "#1_1408_0012048",
+                            "group": 1,
+                            "color": "CZ-PAD",
+                            "descrition": "Módulo de estrutura metálica do tipo porta-paletes medindo 2300 x 1000 x 4000 mm ( medida total frontal = 2460 mm ) com 2 pares de longarinas aptos a suportar uma carga uniformemente distribuida de 2000 kgf cada.  Cargas uniformemente distribuidas. Pintura: Colunas dos montantes cinza e longarinas laranja. Atenção: Verificar no item 'COR DA PINTURA' os acessórios que serão galvanizados e sem pintura.",
+                            "ship_date": 1412553600000,
+                            "quantity": 1,
+                            "sequence": 4
+                        }
+                    ]
+                    }
+    /checklist:
+      /{number}:
+        get:
+          responses:
+            200:
+              body:
+                application/json
+/sales:
+  /quotation:
+    /{number}:
+      get:
+        responses:
+          200:
+            body:
+              application/json
+      /item:
+        get:
+          responses:
+            200:
+              body:
+                application/json
+      /{item}:
+        get:
+          responses:
+            200:
+              body:
+                application/json
+        /component:
+          get:
+            responses:
+              200:
+                body:
+                  application/json
+        
+  /status:
+    get:
+      responses:
+        200:
+          body:
+            application/json
+  /order:
+    /{number}:
+      get:
+        responses:
+          200:
+            body:
+              application/json
+      /item:
+        get:
+          responses:
+            200:
+              body:
+                application/json
+      /{item}:
+        get:
+          responses:
+            200:
+              body:
+                application/json
+
+
+        
+      

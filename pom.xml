@@ -10,7 +10,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-
+		<mule.cors.version>1.0-SNAPSHOT</mule.cors.version>
 		<mule.version>3.5.0</mule.version>
 		<eclipsePluginVersion>2.8</eclipsePluginVersion>
 		<jdkName>JavaSE-1.6</jdkName>
@@ -310,6 +310,19 @@
 			<version>${mule.version}</version>
 			<scope>provided</scope>
 		</dependency>
+		
+		<dependency>
+			<groupId>org.mule.modules</groupId>
+			<artifactId>mule-module-cors</artifactId>
+			<version>${mule.cors.version}</version>
+		</dependency>
+		
+		<dependency>
+		    <groupId>com.microsoft.sqlserver</groupId>
+		    <artifactId>sqljdbc4</artifactId>
+		    <version>4.0</version>
+		</dependency>
+
 		<!-- for testing -->
 		<dependency>
 			<groupId>org.mule.tests</groupId>
@@ -333,6 +346,12 @@
             <groupId>org.mule.modules</groupId>
             <artifactId>mule-module-apikit</artifactId>
             <version>1.4.1</version>
+        </dependency>
+    <dependency>
+            <groupId>org.mule.modules</groupId>
+            <artifactId>mule-module-json</artifactId>
+            <version>${mule.version}</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
