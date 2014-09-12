@@ -191,12 +191,45 @@ mediaType: application/json
                     ]
                     }
     /checklist:
+      get:
+        queryParameters:
+          querystring:
+            displayName: query string
+            type: string
+            description: query parameter
+        responses:
+          200:
+            body:
+              application/json
+          404:
+            body:
+              application/json
       /{number}:
         get:
           responses:
             200:
               body:
                 application/json
+            404:
+              body:
+                application/json
+        delete:
+          responses:
+            204:
+              body:
+                application/json
+            404:
+              body:
+                application/json
+        /import:
+          get:
+            responses:
+              204:
+                body:
+                  application/json
+              404:
+                body:
+                  application/json          
 /sales:
   /quotation:
     /{number}:

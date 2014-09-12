@@ -54,7 +54,7 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
         <apikit:router config-ref="apiConfig" doc:name="APIkit Router" />
         <exception-strategy ref="apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy" />
     </flow>
-    <flow name="get:/manufacturing/bom/checklist/{number}:apiConfig" doc:name="get:/manufacturing/bom/order/{number}/checklist:apiConfig">
+    <flow name="get:/manufacturing/bom/checklist/{number}:apiConfig" doc:name="get:/manufacturing/bom/checklist/{number}:apiConfig">
         <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
             <db:parameterized-query><![CDATA[SELECT 
 					(SELECT     
@@ -64,6 +64,7 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 						LTRIM(RTRIM(ISNULL(GPIMAC_Altamira.dbo.LPV.LPENT, ''))) AS order_date,
 						LTRIM(RTRIM(ISNULL(GPIMAC_Altamira.dbo.LPV.LP0SAIRED, ''))) AS delivery_date,
 						GPIMAC_Altamira.dbo.LPV.LPWBCCADORCNUM AS quotation,
+						CASE WHEN LEN(LTRIM(RTRIM(GPIMAC_Altamira.dbo.LPV.LPObsOP))) = 0 THEN ' ' ELSE LTRIM(RTRIM(GPIMAC_Altamira.dbo.LPV.LPObsOP)) END AS comment,
 						(SELECT 
 							ISNULL(WBCCAD.dbo.INTEGRACAO_ORCITM.ORCITM, 0) AS item, 
 							LTRIM(RTRIM(LEFT(ISNULL(WBCCAD.dbo.INTEGRACAO_ORCITM.ORCTXT, ''), CHARINDEX(' Valor total líquido:', ISNULL(WBCCAD.dbo.INTEGRACAO_ORCITM.ORCTXT, ''))))) AS description, 
@@ -106,7 +107,8 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 					WHERE     
 						(GPIMAC_Altamira.dbo.LPV.LPPED = ISNULL(#[number], 0))
 					FOR XML PATH('order'), TYPE)
-				AS 'orderXml']]></db:parameterized-query>				
+				AS 'orderXml']]></db:parameterized-query>
+				
         </db:select>
         <logger message="#[payload]" level="INFO" doc:name="Logger" />
  		<set-payload value="#[groovy:payload.orderXml[0]]" doc:name="Set Payload"/>
@@ -114,7 +116,22 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
         <json:xml-to-json-transformer doc:name="XML to JSON" mimeType="application/json"/>
  		
     </flow>
+    <flow name="get:/manufacturing/bom/checklist:apiConfig" doc:name="get:/manufacturing/bom/checklist:apiConfig">
 
+        <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
+            <db:parameterized-query><![CDATA[SELECT TOP 10
+				GPIMAC_Altamira.dbo.LPV.LPPED AS number, 
+				LTRIM(RTRIM(ISNULL(GPIMAC_Altamira.dbo.CACLI.CCNOM, ''))) AS customer
+			FROM         
+				GPIMAC_Altamira.dbo.LPV WITH (NOLOCK) INNER JOIN
+				GPIMAC_Altamira.dbo.CACLI WITH (NOLOCK) ON GPIMAC_Altamira.dbo.CACLI.CCCGC = GPIMAC_Altamira.dbo.LPV.CCCGC 
+			/*WHERE   
+				(CAST(GPIMAC_Altamira.dbo.LPV.LPPED AS NVARCHAR) = LTRIM(RTRIM('#[number]'))) OR
+				(GPIMAC_Altamira.dbo.CACLI.CCNOM LIKE '#[number]%')*/]]></db:parameterized-query>
+        </db:select>
+        <logger message="#[payload]" level="INFO" doc:name="Logger" />
+        <logger message="Message: {#[header:INBOUND:querystring]}" level="INFO" doc:name="Logger" />
+	</flow>
     <flow name="get:/manufacturing/bom/product/{code}:apiConfig" doc:name="get:/manufacturing/bom/product/{code}:apiConfig">
         <db:select config-ref="SQLSERVER_WBCCAD" doc:name="Database">
             <db:parameterized-query><![CDATA[
