@@ -50,7 +50,12 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
         </apikit:mapping>
     </apikit:mapping-exception-strategy>
     <flow name="main" doc:name="main">
-        <http:inbound-endpoint doc:name="HTTP" exchange-pattern="request-response" address="http://172.31.17.186:${http.port}" />
+        <http:inbound-endpoint doc:name="HTTP" exchange-pattern="request-response" address="http://localhost:${http.port}" contentType="application/json"/>
+        <response>
+            <http:response-builder contentType="application/json" doc:name="HTTP Response Builder">
+                <http:header name="Access-Control-Allow-Origin" value="*"/>
+            </http:response-builder>
+        </response>
         <apikit:router config-ref="apiConfig" doc:name="APIkit Router" />
         <exception-strategy ref="apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy" />
     </flow>
@@ -61,8 +66,8 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 						GPIMAC_Altamira.dbo.LPV.LPPED AS number, 
 						LTRIM(RTRIM(ISNULL(GPIMAC_Altamira.dbo.CACLI.CCNOM, ''))) AS customer, 
 						LTRIM(RTRIM(ISNULL(GPIMAC_Altamira.dbo.CAREP.CVNOM, ''))) AS sales_representative, 
-						LTRIM(RTRIM(ISNULL(GPIMAC_Altamira.dbo.LPV.LPENT, ''))) AS order_date,
-						LTRIM(RTRIM(ISNULL(GPIMAC_Altamira.dbo.LPV.LP0SAIRED, ''))) AS delivery_date,
+						/*LTRIM(RTRIM(ISNULL(GPIMAC_Altamira.dbo.LPV.LPENT, '')))*/ 1410895028676 AS order_date,
+						/*LTRIM(RTRIM(ISNULL(GPIMAC_Altamira.dbo.LPV.LP0SAIRED, '')))*/ 1410895028676 AS delivery_date,
 						GPIMAC_Altamira.dbo.LPV.LPWBCCADORCNUM AS quotation,
 						CASE WHEN LEN(LTRIM(RTRIM(GPIMAC_Altamira.dbo.LPV.LPObsOP))) = 0 THEN ' ' ELSE LTRIM(RTRIM(GPIMAC_Altamira.dbo.LPV.LPObsOP)) END AS comment,
 						(SELECT 
